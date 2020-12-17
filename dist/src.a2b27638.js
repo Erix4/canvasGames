@@ -789,12 +789,13 @@ var Game = /*#__PURE__*/function () {
       this.fps = 0;
       var fto = 5; //bolts per second (5)
 
-      this.boltSpeed = 1000; //speed of bolts (500)
+      this.boltSpeed = 500; //speed of bolts (500)
 
       this.fTimeOut = 1000 / fto;
       this.nextFire = 0;
-      this.escOrigin = 4000;
-      this.escalationCap = 100; //miliseconds between spawn
+      this.escOrigin = 4000; //starting miliseconds between spawn
+
+      this.escalationCap = 200; //minimum miliseconds between spawn (200)
 
       this.escalation = this.escOrigin;
       this.score = 0;
