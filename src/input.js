@@ -3,47 +3,59 @@ import ship from "./ship";
 export default class InputHandler {
   constructor(ship, game) {
     document.addEventListener("keydown", event => {
-      switch (event.keyCode) {
-        case 37:
+      switch (event.key) {
+        case "ArrowLeft":
           ship.turnLeft();
           break;
         //
-        case 39:
+        case "ArrowRight":
           ship.turnRight();
           break;
         //
-        case 38:
+        case "ArrowUp":
           ship.moveForward();
           break;
         //
-        case 40:
+        case "ArrowDown":
           ship.moveBackward();
           break;
         //
-        case 32:
+        case " ":
           game.fire();
           break;
+        case "Enter":
+          game.startGame();
+          break;
+        case "s":
+          game.changeSpeed();
+          break;
+        case "e":
+          if(game.explosion != 10){
+            game.explosion++;
+          }else{
+            game.explosion = 0;
+          }
       }
     });
     //
     document.addEventListener("keyup", event => {
-      switch (event.keyCode) {
-        case 37:
+      switch (event.key) {
+        case "ArrowLeft":
           if (ship.tspeed.r < 0) ship.stopRot();
           break;
         //
-        case 39:
+        case "ArrowRight":
           if (ship.tspeed.r > 0) ship.stopRot();
           break;
         //
-        case 38:
+        case "ArrowUp":
           if (ship.tspeed.m > 0) ship.stopMove();
           break;
         //
-        case 40:
+        case "ArrowDown":
           if (ship.tspeed.m < 0) ship.stopMove();
           break;
-        case 32:
+        case " ":
           game.stopFire();
           break;
       }

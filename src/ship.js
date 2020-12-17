@@ -14,9 +14,9 @@ export default class Ship{
     this.size = 20;
     this.rotation = 0;
     //
-    this.rc = 150; //rotation change: _ per second
-    this.mc = 300; //move change: _ per second
-    this.ds = 500; //decay speed: _ per second
+    this.rc = 150; //rotation change: degrees per second (150)
+    this.mc = 300; //move change: pixels per second
+    this.ds = 500; //decay speed: units per second (also accel speed)
   }
   //
   turnLeft(){
@@ -131,6 +131,10 @@ export default class Ship{
       this.speed.y = -this.speed.y;
       this.position.y = this.game.paddle.position.y - this.size;
     }*/
+  }
+  //
+  changeSpeed(newSpeed){
+    //do nothing
   }
 }
 

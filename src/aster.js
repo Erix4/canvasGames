@@ -1,3 +1,5 @@
+import { collisionDet } from "./coldet";
+
 export default class Aster {
     //
     constructor(game){
@@ -8,8 +10,11 @@ export default class Aster {
         //
         this.game = game;
         //
-        this.speed = 100 + Math.random() * 200; //move speed: _ per second
-        this.rotspeed = 20 * Math.random() * 50; //rotation speed: _ per second
+        this.originSpeed = (100 + Math.random() * 200);
+        this.speed = this.originSpeed / this.game.timeSlow; //move speed: _ per second
+        this.originSpeed
+        this.originrotspeed = 1000 * Math.random(); //rotation speed: _ per second
+        this.rotspeed = this.originrotspeed / this.game.timeSlow;
         this.size = Math.random() * 50 + 30;
         this.rotation = 0;
         this.vrot = 0;
@@ -24,11 +29,13 @@ export default class Aster {
             this.rotation = (Math.random() * -180) + (bin * 180);
         }
         this.revealed = false;
+        //console.log("Also Hello" + ", x: " + this.position.x + ", y: " + this.position.y + ", rot: " + this.rotation);
         //
         this.markedForDeletion = false;
     }
     //
     draw(ctx){
+        //console.log("Draw?")
         var ux = this.position.x + (this.size / 2);
         var uy = this.position.y + (this.size / 2);
         ctx.translate(ux, uy);//adjust to rotate
@@ -47,6 +54,7 @@ export default class Aster {
     }
     //
     update(deltaTime){
+        //console.log("Now x: " + this.position.x + ", y: " + this.position.y);
         this.vrot += (this.rotspeed / 1000 * deltaTime)
         if(this.vrot > 180){
             this.vrot -= 360;
@@ -56,6 +64,22 @@ export default class Aster {
         //
         this.position.x += (this.speed / 1000 * deltaTime) * Math.cos(toRadians(this.rotation));
         this.position.y -= (this.speed / 1000 * deltaTime) * Math.sin(toRadians(this.rotation));
+        //
+        this.game.bolts.forEach(bolt => {
+            if(collisionDet(this, bolt, true, false)){
+                this.markedForDeletion = true;
+                this.game.astHit();
+                for(var i = 0; i < (this.game.explosion * 3); i++){
+                    this.game.newExtBolt(this.position.x, this.position.y, ((120 / this.game.explosion) * i) + this.rotation, this.size);
+                }
+                return;
+            }
+        });
+        //
+        if(collisionDet(this, this.game.ship, true, true)){
+            this.game.endGame();
+            return;
+        }
         //
         if(this.revealed){//the asteroid has come out of the walls
             if(this.position.y > this.gameHeight - this.size){
@@ -87,6 +111,11 @@ export default class Aster {
                 this.revealed = true;
             }
         }
+    }
+    //
+    changeSpeed(newSpeed){
+        this.speed = this.originSpeed / newSpeed;
+        this.rotspeed = this.originrotspeed / newSpeed;
     }
 }
 

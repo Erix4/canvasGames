@@ -9,7 +9,8 @@ export default class Bolt{
         //
         this.game = game;
         //
-        this.speed = 500; //_ per second
+        this.originSpeed = this.game.boltSpeed;
+        this.speed = this.originSpeed / this.game.timeSlow; //_ per second (500)
         this.width = 16;
         this.height = 6;
         this.rotation = rotation;
@@ -18,6 +19,8 @@ export default class Bolt{
         this.position = position;
         //
         this.markedForDeletion = false;
+        //
+        this.game.pewSound();
     }
     //
     draw(ctx) {
@@ -48,6 +51,10 @@ export default class Bolt{
         || this.position.y < 0){
             this.markedForDeletion = true;
         }
+    }
+    //
+    changeSpeed(newSpeed){
+        this.speed = this.originSpeed / newSpeed;
     }
 }
 

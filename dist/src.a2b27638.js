@@ -158,11 +158,11 @@ var Ship = /*#__PURE__*/function () {
     this.size = 20;
     this.rotation = 0; //
 
-    this.rc = 150; //rotation change: _ per second
+    this.rc = 150; //rotation change: degrees per second (150)
 
-    this.mc = 300; //move change: _ per second
+    this.mc = 300; //move change: pixels per second
 
-    this.ds = 500; //decay speed: _ per second
+    this.ds = 500; //decay speed: units per second (also accel speed)
   } //
 
 
@@ -310,6 +310,11 @@ var Ship = /*#__PURE__*/function () {
         this.position.y = this.game.paddle.position.y - this.size;
       }*/
 
+    } //
+
+  }, {
+    key: "changeSpeed",
+    value: function changeSpeed(newSpeed) {//do nothing
     }
   }]);
 
@@ -352,7 +357,8 @@ var Bolt = /*#__PURE__*/function () {
 
     this.game = game; //
 
-    this.speed = 500; //_ per second
+    this.originSpeed = this.game.boltSpeed;
+    this.speed = this.originSpeed / this.game.timeSlow; //_ per second (500)
 
     this.width = 16;
     this.height = 6;
@@ -361,7 +367,9 @@ var Bolt = /*#__PURE__*/function () {
 
     this.position = position; //
 
-    this.markedForDeletion = false;
+    this.markedForDeletion = false; //
+
+    this.game.pewSound();
   } //
 
 
@@ -391,6 +399,12 @@ var Bolt = /*#__PURE__*/function () {
       || this.position.x < 0 || this.position.y > this.gameHeight - this.height || this.position.y < 0) {
         this.markedForDeletion = true;
       }
+    } //
+
+  }, {
+    key: "changeSpeed",
+    value: function changeSpeed(newSpeed) {
+      this.speed = this.originSpeed / newSpeed;
     }
   }]);
 
@@ -410,6 +424,51 @@ function toRadians(angle) {
 function pythagorus(a, b) {
   return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
 }
+},{}],"src/coldet.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.collisionDet = collisionDet;
+
+function collisionDet(oba, obb, obas, obbs) {
+  //
+  var obatop = oba.position.y;
+  var obaleft = oba.position.x;
+  var obabottom = 0;
+  var obaright = 0;
+
+  if (obas) {
+    obabottom = oba.position.y + oba.size;
+    obaright = oba.position.x + oba.size;
+  } else {
+    obabottom = oba.position.y + oba.height;
+    obaright = oba.position.x + oba.width;
+  } //
+
+
+  var obbtop = obb.position.y;
+  var obbleft = obb.position.x;
+  var obbbottom = 0;
+  var obbright = 0;
+
+  if (obbs) {
+    obbbottom = obb.position.y + obb.size;
+    obbright = obb.position.x + obb.size;
+  } else {
+    obbbottom = obb.position.y + obb.height;
+    obbright = obb.position.x + obb.width;
+  } //
+
+
+  if (obbleft < obaright && obbright > obaleft && obbtop < obabottom && obbbottom > obatop) {
+    return true;
+  } else {
+    return false;
+  } //
+
+}
 },{}],"src/aster.js":[function(require,module,exports) {
 "use strict";
 
@@ -417,6 +476,8 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.default = void 0;
+
+var _coldet = require("./coldet");
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -436,10 +497,13 @@ var Aster = /*#__PURE__*/function () {
 
     this.game = game; //
 
-    this.speed = 100 + Math.random() * 200; //move speed: _ per second
+    this.originSpeed = 100 + Math.random() * 200;
+    this.speed = this.originSpeed / this.game.timeSlow; //move speed: _ per second
 
-    this.rotspeed = 20 * Math.random() * 50; //rotation speed: _ per second
+    this.originSpeed;
+    this.originrotspeed = 1000 * Math.random(); //rotation speed: _ per second
 
+    this.rotspeed = this.originrotspeed / this.game.timeSlow;
     this.size = Math.random() * 50 + 30;
     this.rotation = 0;
     this.vrot = 0;
@@ -461,7 +525,8 @@ var Aster = /*#__PURE__*/function () {
       this.rotation = Math.random() * -180 + bin * 180;
     }
 
-    this.revealed = false; //
+    this.revealed = false; //console.log("Also Hello" + ", x: " + this.position.x + ", y: " + this.position.y + ", rot: " + this.rotation);
+    //
 
     this.markedForDeletion = false;
   } //
@@ -470,6 +535,7 @@ var Aster = /*#__PURE__*/function () {
   _createClass(Aster, [{
     key: "draw",
     value: function draw(ctx) {
+      //console.log("Draw?")
       var ux = this.position.x + this.size / 2;
       var uy = this.position.y + this.size / 2;
       ctx.translate(ux, uy); //adjust to rotate
@@ -486,6 +552,9 @@ var Aster = /*#__PURE__*/function () {
   }, {
     key: "update",
     value: function update(deltaTime) {
+      var _this = this;
+
+      //console.log("Now x: " + this.position.x + ", y: " + this.position.y);
       this.vrot += this.rotspeed / 1000 * deltaTime;
 
       if (this.vrot > 180) {
@@ -497,6 +566,26 @@ var Aster = /*#__PURE__*/function () {
 
       this.position.x += this.speed / 1000 * deltaTime * Math.cos(toRadians(this.rotation));
       this.position.y -= this.speed / 1000 * deltaTime * Math.sin(toRadians(this.rotation)); //
+
+      this.game.bolts.forEach(function (bolt) {
+        if ((0, _coldet.collisionDet)(_this, bolt, true, false)) {
+          _this.markedForDeletion = true;
+
+          _this.game.astHit();
+
+          for (var i = 0; i < _this.game.explosion * 3; i++) {
+            _this.game.newExtBolt(_this.position.x, _this.position.y, 120 / _this.game.explosion * i + _this.rotation, _this.size);
+          }
+
+          return;
+        }
+      }); //
+
+      if ((0, _coldet.collisionDet)(this, this.game.ship, true, true)) {
+        this.game.endGame();
+        return;
+      } //
+
 
       if (this.revealed) {
         //the asteroid has come out of the walls
@@ -534,6 +623,13 @@ var Aster = /*#__PURE__*/function () {
           this.revealed = true;
         }
       }
+    } //
+
+  }, {
+    key: "changeSpeed",
+    value: function changeSpeed(newSpeed) {
+      this.speed = this.originSpeed / newSpeed;
+      this.rotspeed = this.originrotspeed / newSpeed;
     }
   }]);
 
@@ -549,7 +645,7 @@ function toDegrees(angle) {
 function toRadians(angle) {
   return angle * (Math.PI / 180);
 }
-},{}],"src/input.js":[function(require,module,exports) {
+},{"./coldet":"src/coldet.js"}],"src/input.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -567,55 +663,71 @@ var InputHandler = function InputHandler(ship, game) {
   _classCallCheck(this, InputHandler);
 
   document.addEventListener("keydown", function (event) {
-    switch (event.keyCode) {
-      case 37:
+    switch (event.key) {
+      case "ArrowLeft":
         ship.turnLeft();
         break;
       //
 
-      case 39:
+      case "ArrowRight":
         ship.turnRight();
         break;
       //
 
-      case 38:
+      case "ArrowUp":
         ship.moveForward();
         break;
       //
 
-      case 40:
+      case "ArrowDown":
         ship.moveBackward();
         break;
       //
 
-      case 32:
+      case " ":
         game.fire();
         break;
+
+      case "Enter":
+        game.startGame();
+        break;
+
+      case "s":
+        game.changeSpeed();
+        break;
+
+      case "e":
+        if (game.explosion != 10) {
+          game.explosion++;
+        } else {
+          game.explosion = 0;
+        }
+
     }
   }); //
 
   document.addEventListener("keyup", function (event) {
-    switch (event.keyCode) {
-      case 37:
+    switch (event.key) {
+      case "ArrowLeft":
         if (ship.tspeed.r < 0) ship.stopRot();
         break;
       //
 
-      case 39:
+      case "ArrowRight":
         if (ship.tspeed.r > 0) ship.stopRot();
         break;
       //
 
-      case 38:
+      case "ArrowUp":
         if (ship.tspeed.m > 0) ship.stopMove();
         break;
       //
 
-      case 40:
+      case "ArrowDown":
         if (ship.tspeed.m < 0) ship.stopMove();
         break;
 
-      case 32:
+      case " ":
         game.stopFire();
         break;
     }
@@ -641,18 +753,6 @@ var _input = _interopRequireDefault(require("/src/input"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _unsupportedIterableToArray(arr) || _nonIterableSpread(); }
-
-function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
-
-function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
-
-function _iterableToArray(iter) { if (typeof Symbol !== "undefined" && Symbol.iterator in Object(iter)) return Array.from(iter); }
-
-function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) return _arrayLikeToArray(arr); }
-
-function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
-
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
@@ -672,9 +772,7 @@ var Game = /*#__PURE__*/function () {
     _classCallCheck(this, Game);
 
     this.gameWidth = gameWidth;
-    this.gameHeight = gameHeight; //
-
-    this.asteroids = new Array();
+    this.gameHeight = gameHeight;
   } //
 
 
@@ -684,13 +782,39 @@ var Game = /*#__PURE__*/function () {
       this.gamestate = GAMESTATE.RUNNING;
       this.ship = new _ship.default(this); //
 
-      this.gameObjects = [this.ship].concat(_toConsumableArray(this.asteroids));
+      this.bolts = new Array();
+      this.gameObjects = [this.ship];
       this.firing = false;
-      this.time = 0; //
+      this.time = 0;
+      this.fps = 0;
+      var fto = 5; //bolts per second (5)
 
-      this.asteroids.push(new _aster.default(this)); //
+      this.boltSpeed = 1000; //speed of bolts (500)
 
-      new _input.default(this.ship, this);
+      this.fTimeOut = 1000 / fto;
+      this.nextFire = 0;
+      this.escOrigin = 4000;
+      this.escalationCap = 100; //miliseconds between spawn
+
+      this.escalation = this.escOrigin;
+      this.score = 0;
+      this.highScore = 0;
+      this.timeSlow = 1;
+      this.timeFactor = 100;
+      this.explosion = 0; //
+
+      new _input.default(this.ship, this); //
+
+      this.astDeath = document.getElementById("astDeath");
+      this.badStop = document.getElementById("badStop");
+      this.goodStop = document.getElementById("goodStop");
+      this.serene = document.getElementById("serene");
+      this.pew1 = document.getElementById("pew");
+      this.pew2 = this.pew1.cloneNode();
+      this.pew3 = this.pew1.cloneNode();
+      this.pewV = 1; //
+
+      this.serene.loop = true;
     } //
 
   }, {
@@ -704,25 +828,39 @@ var Game = /*#__PURE__*/function () {
 
       this.gameObjects = this.gameObjects.filter(function (object) {
         return !object.markedForDeletion;
+      });
+      this.bolts = this.bolts.filter(function (object) {
+        return !object.markedForDeletion;
       }); //
 
-      if (this.firing) {
+      if (this.firing && this.time > this.nextFire) {
         var rot = this.ship.rotation;
         var size = this.ship.size;
         var fireP = {
           x: this.ship.position.x + (size - 3) * Math.cos(toRadians(rot)),
           y: this.ship.position.y + (size / 2 - 3) + (size - 3) * Math.sin(toRadians(rot))
         };
-        this.gameObjects.push(new _bolt.default(this, fireP, rot));
+        var nBolt = new _bolt.default(this, fireP, rot);
+        this.gameObjects.push(nBolt);
+        this.bolts.push(nBolt);
+        this.nextFire = this.time + this.fTimeOut;
       } //
 
 
       this.time += deltaTime;
 
-      if (this.time > 5000) {
+      if (this.time > 5000 - this.escalation && this.timeSlow == 1) {
         this.newAst();
         this.time = 0;
-      }
+        this.nextFire = 0;
+
+        if (this.escalation < 5000 - this.escalationCap) {
+          this.escalation += 100;
+        }
+      } //
+
+
+      this.fps = Math.round(1000 / deltaTime);
     } //
 
   }, {
@@ -731,11 +869,27 @@ var Game = /*#__PURE__*/function () {
       this.gameObjects.forEach(function (object) {
         return object.draw(ctx);
       }); //
+      //var font = new FontFaceObserver('Pixeled');
+      //
+
+      ctx.font = '20px "Pixeled"';
+      ctx.fillText("Fps: " + this.fps, 10, 20);
+      ctx.fillText("Objects: " + this.gameObjects.length, 10, 40);
+      ctx.fillText("Score: " + this.score, 10, 60);
+      ctx.fillText("Spawn Time: " + (5000 - this.escalation) / 1000, 10, 80);
+      ctx.fillText("Explosions: " + this.explosion * 3 + "/30", 10, 100); //
 
       if (this.gamestate === GAMESTATE.PAUSED) {
         ctx.rect(0, 0, this.gameWidth, this.gameHeight);
-        ctx.fillStyle = "rgba(0,0,0,0.5)";
+        ctx.fillStyle = "rgba(256,256,256,0.8)";
         ctx.fill();
+        var txt = "Score: " + this.score;
+        ctx.fillStyle = "rgb(0,0,0)";
+        ctx.fillText(txt, this.gameWidth / 2 - ctx.measureText(txt).width / 2, this.gameHeight / 2 - 30);
+        txt = "High score: " + this.highScore;
+        ctx.fillText(txt, this.gameWidth / 2 - ctx.measureText(txt).width / 2, this.gameHeight / 2);
+        txt = "[Enter] to play again";
+        ctx.fillText(txt, this.gameWidth / 2 - ctx.measureText(txt).width / 2, this.gameHeight / 2 + 30);
       }
     } //
 
@@ -754,18 +908,116 @@ var Game = /*#__PURE__*/function () {
   }, {
     key: "newAst",
     value: function newAst() {
-      this.asteroids.push(new _aster.default(this));
-      console.log("Hello!");
+      this.gameObjects.push(new _aster.default(this)); //console.log("Hello!");
     } //
 
-    /*togglePause() {
-      if (this.gamestate === GAMESTATE.PAUSED) {
-        this.gamestate = GAMESTATE.RUNNING;
-      } else {
-        this.gamestate = GAMESTATE.PAUSED;
-      }
-    }*/
+  }, {
+    key: "astHit",
+    value: function astHit() {
+      this.score += 10;
 
+      if (this.score > this.highScore) {
+        this.highScore = this.score;
+      }
+
+      this.astDeath.play();
+    } //
+
+  }, {
+    key: "endGame",
+    value: function endGame() {
+      this.gamestate = GAMESTATE.PAUSED;
+
+      if (this.score == this.highScore) {
+        this.goodStop.play();
+      } else {
+        this.badStop.play();
+      }
+    } //
+
+  }, {
+    key: "startGame",
+    value: function startGame() {
+      if (this.gamestate == GAMESTATE.PAUSED) {
+        this.gamestate = GAMESTATE.RUNNING;
+        this.score = 0;
+        this.gameObjects = [this.ship];
+        this.escalation = this.escOrigin;
+        this.bolts = [];
+        this.firing = false;
+        this.time = 0;
+        this.nextFire = 0;
+        this.timeSlow = 1;
+      }
+    } //
+
+  }, {
+    key: "pewSound",
+    value: function pewSound() {
+      switch (this.pewV) {
+        case 1:
+          //this.pew1.play();//uncomment to enable pew
+          //this.pewV = 2;
+          break;
+
+        case 2:
+          //
+          break;
+
+        case 3:
+          //
+          break;
+      }
+      /*if(this.pewV == 3){
+        this.pew2.pause();
+        this.pew3.play();
+        this.pewV = 1;
+        this.pew2.currentTime = 0;
+      }else{
+        if(this.pewV == 1){
+          this.pew3.pause();
+          this.pew1.play();
+          this.pew3.currentTime = 0;
+        }else{
+          this.pew1.pause();
+          this.pew2.play();
+          this.pew1.currentTime = 0;
+        }
+        this.pewV++;
+      }*/
+
+    } //
+
+  }, {
+    key: "changeSpeed",
+    value: function changeSpeed() {
+      var _this = this;
+
+      if (this.timeSlow == 1) {
+        this.timeSlow = this.timeFactor;
+        this.serene.play(); //console.log("Start loop");
+      } else {
+        this.timeSlow = 1;
+        this.serene.pause();
+      } //console.log(`Time Slow: ${this.timeSlow}`);
+
+
+      this.gameObjects.forEach(function (element) {
+        element.changeSpeed(_this.timeSlow);
+      });
+    } //
+
+  }, {
+    key: "newExtBolt",
+    value: function newExtBolt(x, y, rot, size) {
+      var fireP = {
+        x: x + (size - 3) * Math.cos(toRadians(rot)),
+        y: y + (size / 2 - 3) + (size - 3) * Math.sin(toRadians(rot))
+      };
+      var nBolt = new _bolt.default(this, fireP, rot);
+      this.gameObjects.push(nBolt);
+      this.bolts.push(nBolt);
+    }
   }]);
 
   return Game;
@@ -838,7 +1090,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "58965" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "53527" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
